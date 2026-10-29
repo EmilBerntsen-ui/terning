@@ -1,19 +1,19 @@
 // node scripts/icons.mjs → assets/icons/*.png. Køres én gang; PNG-filerne committes.
-// En hvid terning med fem prikker på filtgrønt, fuld baggrund. Det maskérbare ikon holder terningen inden for det sikre område.
+// En hvid terning med fem prikker på sort, fuld baggrund. Det maskérbare ikon holder terningen inden for det sikre område.
 import { writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodePng } from './png.mjs';
 
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../assets/icons');
-const FELT = [0x0F, 0x3D, 0x2E], DIE = [0xFA, 0xFA, 0xF7], PIP = [0x1A, 0x1A, 0x1A];
+const BACKGROUND = [0x00, 0x00, 0x00], DIE = [0xFA, 0xFA, 0xF7], PIP = [0x1A, 0x1A, 0x1A];
 const SS = 4; // supersampling pr. akse
 
 // Farve i punktet (x, y) i enhedskvadratet; `side` er terningens sidelængde som andel af ikonet.
 function colorAt(x, y, side) {
   const h = side / 2, r = side * 0.2;
   const dx = Math.max(Math.abs(x - 0.5) - (h - r), 0), dy = Math.max(Math.abs(y - 0.5) - (h - r), 0);
-  if (dx * dx + dy * dy > r * r) return FELT;
+  if (dx * dx + dy * dy > r * r) return BACKGROUND;
   const q = side * 0.27, pr = side * 0.095;
   for (const [px, py] of [[-q, -q], [q, -q], [0, 0], [-q, q], [q, q]]) {
     if ((x - 0.5 - px) ** 2 + (y - 0.5 - py) ** 2 <= pr * pr) return PIP;
