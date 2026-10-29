@@ -1,0 +1,10 @@
+{
+  "name": "terning",
+  "private": true,
+  "type": "module",
+  "description": "Terning – en terning-app til hjemmeskærmen",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test"
+  }
+}
