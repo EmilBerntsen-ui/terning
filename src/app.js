@@ -11,7 +11,18 @@ let rolling = false;
 
 diceEl.style.setProperty('--roll-ms', `${ROLL_MS}ms`);
 
-// En terning er en 3D-terning: seks sider (hver med et 3×3-gitter af prikker) og en kerne, der lukker hjørnerne.
+// Hoppet køres på kuben med de selvstændige translate/scale-egenskaber, så rotationens transition får lov at køre uforstyrret,
+// og der skiftes ingen klasser midt i slaget (et lag-skift dér kan få iOS til at tegne kuben flad et øjeblik).
+const HOP = [
+  { translate: '0 0', scale: '1' },
+  { translate: '0 -22%', scale: '1.08', offset: 0.28 },
+  { translate: '0 0', scale: '1', offset: 0.58 },
+  { translate: '0 -5%', scale: '1', offset: 0.72 },
+  { translate: '0 0', scale: '1' },
+];
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+// En terning er en 3D-terning: seks sider, hver med et 3×3-gitter af prikker.
 function makeDie() {
   const die = document.createElement('div');
   die.className = 'die';
@@ -23,11 +34,6 @@ function makeDie() {
     side.dataset.face = face;
     for (let i = 0; i < 9; i++) side.append(document.createElement('span'));
     cube.append(side);
-  }
-  for (const axis of ['x', 'y', 'z']) {
-    const core = document.createElement('div');
-    core.className = `core core-${axis}`;
-    cube.append(core);
   }
   die.append(cube);
   return die;
@@ -64,15 +70,12 @@ function roll(fingers) {
   const { spins, final } = planRoll(count, { sixes: sixesFor(fingers, count) });
   sumEl.classList.add('pending');
   [...diceEl.children].forEach((die, i) => {
-    die.classList.remove('rolling');
-    void die.offsetWidth; // genstart hop-animationen
-    die.classList.add('rolling');
     turn(die, final[i], spins[i]);
+    if (!reducedMotion.matches) die.firstChild.animate(HOP, { duration: ROLL_MS, easing: 'cubic-bezier(.3, .6, .4, 1)' });
   });
   setTimeout(() => {
     showSum(final);
     sumEl.classList.remove('pending');
-    for (const die of diceEl.children) die.classList.remove('rolling');
     rolling = false;
   }, ROLL_MS);
 }

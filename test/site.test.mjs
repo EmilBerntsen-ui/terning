@@ -61,3 +61,11 @@ test('the app checks for updates when it comes back to the foreground', () => {
 test('precache requests carry the version so a stale CDN copy is never cached', () => {
   assert.match(read('sw.js'), /v=\$\{VERSION\}/);
 });
+
+test('3D dice avoid what makes iOS Safari flatten or mis-sort the cube', () => {
+  const css = read('styles.css'), app = read('app.js');
+  assert.doesNotMatch(css, /filter:/, 'no filters near the 3D context');
+  assert.doesNotMatch(css + app, /core/, 'no intersecting inner planes');
+  assert.doesNotMatch(css, /\.die\.rolling/, 'the perspective element is never animated');
+  assert.match(css, /-webkit-backface-visibility:\s*hidden/);
+});
