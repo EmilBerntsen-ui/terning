@@ -3,11 +3,13 @@ import { planRoll, sixesFor, MIN_DICE, MAX_DICE, ROLL_MS } from './dice.js';
 import { createDice3D } from './dice3d.js';
 import { createDice2D } from './dice2d.js';
 import { createTapTracker } from './gesture.js';
+import { createArming } from './arming.js';
 import { loadCount, saveCount } from './prefs.js';
 
 const $ = id => document.getElementById(id);
 const table = $('table'), diceEl = $('dice'), sumEl = $('sum'), countEl = $('count');
 const tracker = createTapTracker();
+const arming = createArming();
 let count = loadCount();
 let rolling = false;
 
@@ -39,10 +41,11 @@ function layout() {
   showResult(final);
 }
 
-// Samme animation og tid for alle slag: bevægelsen kommer kun fra spins; kun de endelige værdier afhænger af antal fingre.
+// Samme animation og tid for alle slag: bevægelsen kommer kun fra spins; kun de endelige værdier afhænger af antal fingre
+// eller af forvalget (tryk på antallet, arming.js), som tæller som 2 eller 3 fingre.
 function roll(fingers) {
   rolling = true;
-  const { spins, final } = planRoll(count, { sixes: sixesFor(fingers, count) });
+  const { spins, final } = planRoll(count, { sixes: sixesFor(Math.max(fingers, arming.take(performance.now())), count) });
   sumEl.classList.add('pending');
   view.roll(final, spins, { instant: reducedMotion.matches });
   setTimeout(() => {
@@ -78,6 +81,7 @@ document.addEventListener('touchmove', e => e.preventDefault(), { passive: false
 for (const type of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(type, e => e.preventDefault());
 
 $('less').addEventListener('click', () => setCount(count - 1));
+countEl.addEventListener('pointerup', () => arming.tap(performance.now())); // forvalg; intet ændrer sig på skærmen
 $('more').addEventListener('click', () => setCount(count + 1));
 
 layout();
@@ -99,5 +103,8 @@ if (isSecureContext && 'serviceWorker' in navigator) {
   });
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') tracker.reset();
+  if (document.visibilityState === 'hidden') {
+    tracker.reset();
+    arming.reset();
+  }
 });

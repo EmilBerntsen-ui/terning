@@ -13,7 +13,7 @@ before(async () => {
 const read = f => readFileSync(join(out, f), 'utf8');
 
 test('ships every file', () => {
-  for (const f of ['index.html', 'app.js', 'dice.js', 'dice3d.js', 'dice2d.js', 'gesture.js', 'prefs.js', 'styles.css', 'sw.js', 'manifest.webmanifest',
+  for (const f of ['index.html', 'app.js', 'dice.js', 'dice3d.js', 'dice2d.js', 'arming.js', 'gesture.js', 'prefs.js', 'styles.css', 'sw.js', 'manifest.webmanifest',
     'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png']) assert.ok(existsSync(join(out, f)), f);
 });
 

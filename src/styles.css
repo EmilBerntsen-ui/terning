@@ -41,7 +41,7 @@ body {
   touch-action: manipulation;
 }
 .bar button:disabled { opacity: .3; }
-#count { min-width: 8.5ch; text-align: center; font-variant-numeric: tabular-nums; }
+#count { min-width: 8.5ch; padding: 10px 0; text-align: center; font-variant-numeric: tabular-nums; } /* lidt større at ramme */
 
 #table {
   flex: 1;
