@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Terning</title>
+<meta name="theme-color" content="#0F3D2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Terning">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="bar">
+  <button id="less" type="button" aria-label="Færre terninger">−</button>
+  <span id="count" aria-live="polite">1 terning</span>
+  <button id="more" type="button" aria-label="Flere terninger">+</button>
+</header>
+<main id="table" aria-label="Tryk for at slå">
+  <div id="dice"></div>
+  <p id="sum" aria-live="polite"></p>
+  <p class="hint">Tryk for at slå</p>
+</main>
+</body>
+</html>
