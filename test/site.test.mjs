@@ -69,3 +69,8 @@ test('3D dice avoid what makes iOS Safari flatten or mis-sort the cube', () => {
   assert.doesNotMatch(css, /\.die\.rolling/, 'the perspective element is never animated');
   assert.match(css, /-webkit-backface-visibility:\s*hidden/);
 });
+
+test('cube faces are square so the corners close', () => {
+  const face = read("styles.css").match(/\.face \{[^}]*padding[^}]*\}/)[0];
+  assert.match(face, /border-radius:\s*0/);
+});

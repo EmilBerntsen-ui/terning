@@ -86,13 +86,20 @@ body {
 }
 .face { position: absolute; inset: 0; }
 .face {
+  /* Firkantede sider, så hjørnerne lukker; det afrundede udtryk kommer fra panelet indeni og den mørkere kant. */
   padding: calc(var(--size) * .14);
-  border-radius: 12%;
-  background: radial-gradient(circle at 30% 25%, #FFFFFF, var(--die) 55%, #E6E6DD);
-  box-shadow: inset 0 0 calc(var(--size) * .06) rgba(0, 0, 0, .12);
+  border-radius: 0;
+  background: #D9D9CF;
   display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); place-items: center;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+.face::before {
+  content: '';
+  position: absolute; inset: calc(var(--size) * .03);
+  border-radius: 14%;
+  background: radial-gradient(circle at 30% 25%, #FFFFFF, var(--die) 55%, #E6E6DD);
+  box-shadow: 0 0 calc(var(--size) * .03) rgba(0, 0, 0, .18);
 }
 .face[data-face="1"] { transform: translateZ(var(--half)); }
 .face[data-face="6"] { transform: rotateY(180deg) translateZ(var(--half)); }
@@ -106,6 +113,7 @@ body {
   background: var(--pip);
   box-shadow: inset 0 2px 2px rgba(0, 0, 0, .6);
   opacity: 0;
+  position: relative; /* over panelet */
 }
 /* Prikkerne i et 3×3-gitter, nummereret 1–9 række for række. */
 .face[data-face="1"] span:nth-child(5),
