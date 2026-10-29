@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomInt, sixesFor, planRoll, TUMBLE_FRAMES } from '../src/dice.js';
+import { randomInt, sixesFor, planRoll, orientation, nextAngle } from '../src/dice.js';
 
 const bytes = list => { let i = 0; return () => list[i++]; };
 
@@ -21,8 +21,8 @@ test('sixesFor: 1 finger none, 2 fingers one, 3+ fingers all', () => {
 
 test('fair roll takes every face from the source', () => {
   const r = planRoll(3, {}, () => 3);
-  assert.equal(r.frames.length, TUMBLE_FRAMES);
   assert.deepEqual(r.final, [4, 4, 4]);
+  assert.equal(r.spins.length, 3);
 });
 
 test('one forced six lands where rand puts it, the rest stay fair', () => {
@@ -30,12 +30,36 @@ test('one forced six lands where rand puts it, the rest stay fair', () => {
   assert.deepEqual(r.final, [1, 1, 6, 1]);
 });
 
-test('all sixes; the tumble is unaffected', () => {
+test('all sixes; the spins are the same as a fair roll', () => {
   const r = planRoll(3, { sixes: 3 }, () => 0);
   assert.deepEqual(r.final, [6, 6, 6]);
-  assert.equal(r.frames.length, TUMBLE_FRAMES);
-  assert.ok(r.frames.every(f => f.length === 3 && f.every(v => v === 1)));
+  assert.deepEqual(r.spins, planRoll(3, {}, () => 0).spins);
   assert.deepEqual(planRoll(2, { sixes: 5 }, () => 0).final, [6, 6]);
+});
+
+test('every die spins at least two whole turns on both axes', () => {
+  for (const { x, y } of planRoll(6).spins) {
+    assert.ok(Number.isInteger(x) && Math.abs(x) >= 2 && Math.abs(x) <= 3, `x ${x}`);
+    assert.ok(Number.isInteger(y) && Math.abs(y) >= 2 && Math.abs(y) <= 3, `y ${y}`);
+  }
+});
+
+test('orientation turns each face to the front; opposite faces sum to 7', () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(orientation),
+    [{ x: 0, y: 0 }, { x: -90, y: 0 }, { x: 0, y: -90 }, { x: 0, y: 90 }, { x: 90, y: 0 }, { x: 0, y: 180 }]);
+});
+
+test('nextAngle spins whole turns in the given direction and lands on the base angle', () => {
+  assert.equal(nextAngle(0, 0, 2), 720);
+  assert.equal(nextAngle(0, 90, -2), -990);
+  assert.equal(nextAngle(720, -90, 3), 720 + 1080 + 270);
+  assert.equal(nextAngle(-990, 180, 2), -990 + 720 + 90);
+  assert.equal(nextAngle(450, 90, 0), 450);
+  for (const [cur, base, turns] of [[0, 90, 2], [-990, 180, -3], [37, -90, 2]]) {
+    const a = nextAngle(cur, base, turns);
+    assert.equal((((a - base) % 360) + 360) % 360, 0);
+    assert.ok(turns > 0 ? a - cur >= 360 * turns : cur - a >= 360 * -turns);
+  }
 });
 
 test('count is clamped to 1..6', () => {
