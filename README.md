@@ -2,6 +2,8 @@
 
 En terning-app til hjemmeskærmen: 1–6 terninger, tryk for at slå, virker uden net.
 
+**Åbn appen: <https://emilberntsen-ui.github.io/terning/>**
+
 Ingen afhængigheder – kun Node (v20.15+).
 
 ```sh
