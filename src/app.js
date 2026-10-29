@@ -1,5 +1,7 @@
 // Siden: forbinder terningelogikken (dice.js), fingertælleren (gesture.js) og det gemte antal (prefs.js) med DOM'en.
-import { planRoll, sixesFor, orientation, nextAngle, MIN_DICE, MAX_DICE, ROLL_MS } from './dice.js';
+import { planRoll, sixesFor, MIN_DICE, MAX_DICE, ROLL_MS } from './dice.js';
+import { createDice3D } from './dice3d.js';
+import { createDice2D } from './dice2d.js';
 import { createTapTracker } from './gesture.js';
 import { loadCount, saveCount } from './prefs.js';
 
@@ -9,72 +11,42 @@ const tracker = createTapTracker();
 let count = loadCount();
 let rolling = false;
 
-diceEl.style.setProperty('--roll-ms', `${ROLL_MS}ms`);
-
-// Hoppet køres på kuben med de selvstændige translate/scale-egenskaber, så rotationens transition får lov at køre uforstyrret,
-// og der skiftes ingen klasser midt i slaget (et lag-skift dér kan få iOS til at tegne kuben flad et øjeblik).
-const HOP = [
-  { translate: '0 0', scale: '1' },
-  { translate: '0 -22%', scale: '1.08', offset: 0.28 },
-  { translate: '0 0', scale: '1', offset: 0.58 },
-  { translate: '0 -5%', scale: '1', offset: 0.72 },
-  { translate: '0 0', scale: '1' },
-];
+// Terningerne tegnes i WebGL bag DOM'en; uden WebGL bliver det flade sider i pladsholderne.
+const view = createDice3D(table, diceEl) ?? createDice2D(diceEl);
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-// En terning er en 3D-terning: seks sider, hver med et 3×3-gitter af prikker.
+// En pladsholder pr. terning i CSS-layoutet; terningen tegnes oven på den.
 function makeDie() {
   const die = document.createElement('div');
   die.className = 'die';
-  const cube = document.createElement('div');
-  cube.className = 'cube';
-  for (let face = 1; face <= 6; face++) {
-    const side = document.createElement('div');
-    side.className = 'face';
-    side.dataset.face = face;
-    for (let i = 0; i < 9; i++) side.append(document.createElement('span'));
-    cube.append(side);
-  }
-  die.append(cube);
   return die;
 }
 
-// Drejer terningen hen på `face`; med spin kører CSS-transitionen de hele omgange.
-function turn(die, face, spin = { x: 0, y: 0 }) {
-  const base = orientation(face);
-  const x = nextAngle(Number(die.dataset.x) || 0, base.x, spin.x);
-  const y = nextAngle(Number(die.dataset.y) || 0, base.y, spin.y);
-  Object.assign(die.dataset, { x, y, face });
-  die.firstChild.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
-}
-
-function showSum(faces) {
+// Resultatet står også i DOM'en (#dice data-faces="3 6 1"), i layoutets rækkefølge.
+function showResult(faces) {
+  diceEl.dataset.faces = faces.join(' ');
   sumEl.textContent = faces.length > 1 ? `Sum ${faces.reduce((a, b) => a + b, 0)}` : '';
 }
 
 function layout() {
   const { final } = planRoll(count);
-  const dice = Array.from({ length: count }, makeDie);
-  dice.forEach((die, i) => turn(die, final[i])); // før indsættelse, så den første stilling ikke animeres
-  diceEl.replaceChildren(...dice);
+  diceEl.replaceChildren(...Array.from({ length: count }, makeDie));
   diceEl.dataset.count = count;
   countEl.textContent = count === 1 ? '1 terning' : `${count} terninger`;
   $('less').disabled = count <= MIN_DICE;
   $('more').disabled = count >= MAX_DICE;
-  showSum(final);
+  view.layout(final);
+  showResult(final);
 }
 
-// Samme animation og tid for alle slag; kun de endelige værdier afhænger af antal fingre.
+// Samme animation og tid for alle slag: bevægelsen kommer kun fra spins; kun de endelige værdier afhænger af antal fingre.
 function roll(fingers) {
   rolling = true;
   const { spins, final } = planRoll(count, { sixes: sixesFor(fingers, count) });
   sumEl.classList.add('pending');
-  [...diceEl.children].forEach((die, i) => {
-    turn(die, final[i], spins[i]);
-    if (!reducedMotion.matches) die.firstChild.animate(HOP, { duration: ROLL_MS, easing: 'cubic-bezier(.3, .6, .4, 1)' });
-  });
+  view.roll(final, spins, { instant: reducedMotion.matches });
   setTimeout(() => {
-    showSum(final);
+    showResult(final);
     sumEl.classList.remove('pending');
     rolling = false;
   }, ROLL_MS);

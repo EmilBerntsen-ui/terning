@@ -1,6 +1,6 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildSite, siteVersion } from '../build/site.mjs';
@@ -13,7 +13,7 @@ before(async () => {
 const read = f => readFileSync(join(out, f), 'utf8');
 
 test('ships every file', () => {
-  for (const f of ['index.html', 'app.js', 'dice.js', 'gesture.js', 'prefs.js', 'styles.css', 'sw.js', 'manifest.webmanifest',
+  for (const f of ['index.html', 'app.js', 'dice.js', 'dice3d.js', 'dice2d.js', 'gesture.js', 'prefs.js', 'styles.css', 'sw.js', 'manifest.webmanifest',
     'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png']) assert.ok(existsSync(join(out, f)), f);
 });
 
@@ -62,15 +62,44 @@ test('precache requests carry the version so a stale CDN copy is never cached', 
   assert.match(read('sw.js'), /v=\$\{VERSION\}/);
 });
 
-test('3D dice avoid what makes iOS Safari flatten or mis-sort the cube', () => {
-  const css = read('styles.css'), app = read('app.js');
-  assert.doesNotMatch(css, /filter:/, 'no filters near the 3D context');
-  assert.doesNotMatch(css + app, /core/, 'no intersecting inner planes');
-  assert.doesNotMatch(css, /\.die\.rolling/, 'the perspective element is never animated');
-  assert.match(css, /-webkit-backface-visibility:\s*hidden/);
+const VENDOR = ['vendor/three.module.min.js', 'vendor/RoundedBoxGeometry.js', 'vendor/RoomEnvironment.js'];
+
+test('vendored three.js ships and is precached, so the dice work offline', () => {
+  const sw = read('sw.js');
+  for (const f of VENDOR) {
+    assert.ok(existsSync(join(out, f)), f);
+    assert.ok(result.files.includes(f), `${f} in the build result`);
+    assert.ok(sw.includes(JSON.stringify(f)), `${f} precached`);
+  }
+  assert.match(read('vendor/three.module.min.js'), /^const t="170",/m, 'three r170');
 });
 
-test('cube faces are square so the corners close', () => {
-  const face = read("styles.css").match(/\.face \{[^}]*padding[^}]*\}/)[0];
-  assert.match(face, /border-radius:\s*0/);
+// Every .js file in the build, subfolders included.
+const shippedJs = (dir = out, prefix = '') => readdirSync(join(dir), { withFileTypes: true }).flatMap(e =>
+  e.isDirectory() ? shippedJs(join(dir, e.name), `${prefix}${e.name}/`) : e.name.endsWith('.js') ? [`${prefix}${e.name}`] : []);
+
+test('every import in shipped JS is relative (no bare "three", no CDN, no import map)', () => {
+  const found = [];
+  for (const f of shippedJs()) {
+    const code = read(f);
+    const specs = [
+      ...code.matchAll(/(?:^|[;}\s])(?:import|export)\b[^;'"`]*?\bfrom\s*(['"])(.*?)\1/g),
+      ...code.matchAll(/(?:^|[;}\s])import\s*(['"])(.*?)\1/g),
+      ...code.matchAll(/\bimport\s*\(\s*(['"])(.*?)\1\s*\)/g),
+    ].map(m => m[2]);
+    for (const spec of specs) {
+      assert.match(spec, /^\.\.?\//, `${f} imports ${spec}`);
+      assert.ok(existsSync(join(out, f, '..', spec)), `${f} imports ${spec}, which ships`);
+      found.push(`${f} → ${spec}`);
+    }
+  }
+  for (const edge of ['app.js → ./dice3d.js', 'dice3d.js → ./vendor/three.module.min.js', 'vendor/RoundedBoxGeometry.js → ./three.module.min.js', 'vendor/RoomEnvironment.js → ./three.module.min.js'])
+    assert.ok(found.includes(edge), edge);
+});
+
+test('the WebGL canvas sits behind the DOM and never takes the taps', () => {
+  const stage = read('styles.css').match(/#table > \.stage \{[^}]*\}/)[0];
+  assert.match(stage, /pointer-events:\s*none/);
+  assert.match(stage, /z-index:\s*-1/);
+  assert.match(read('styles.css'), /#table \{[^}]*isolation:\s*isolate/);
 });

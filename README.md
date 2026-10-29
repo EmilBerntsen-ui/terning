@@ -4,7 +4,8 @@ En terning-app til hjemmeskærmen: 1–6 terninger, tryk for at slå, virker ude
 
 **Åbn appen: <https://emilberntsen-ui.github.io/terning/>**
 
-Ingen afhængigheder – kun Node (v20.15+).
+Ingen npm-afhængigheder – kun Node (v20.15+). Terningerne tegnes i WebGL med three.js 0.170.0, som ligger i `src/vendor/`
+(hentes med `node scripts/vendor.mjs`, committes, og precaches af service workeren, så appen virker uden net). Uden WebGL vises flade terninger.
 
 ```sh
 node --test        # tests

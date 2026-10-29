@@ -1,4 +1,4 @@
-// Bygger den installerbare side: src/ + manifest + ikoner → outDir, og stempler sw.js med version og precache-liste.
+// Bygger den installerbare side: src/ (med undermapper, fx vendor/) + manifest + ikoner → outDir, og stempler sw.js med version og precache-liste.
 import { createHash } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -13,10 +13,17 @@ export function siteVersion(entries) {
   return hash.digest('hex').slice(0, 10);
 }
 
+// Alle filer under `dir` som relative stier med '/', også i undermapper. Skjulte filer og mapper springes over.
+function walk(dir, prefix = '') {
+  return readdirSync(dir, { withFileTypes: true })
+    .filter(entry => !entry.name.startsWith('.'))
+    .flatMap(entry => (entry.isDirectory() ? walk(join(dir, entry.name), `${prefix}${entry.name}/`) : [`${prefix}${entry.name}`]));
+}
+
 export async function buildSite({ outDir }) {
   const src = join(ROOT, 'src'), icons = join(ROOT, 'assets/icons');
   const entries = [
-    ...readdirSync(src).filter(name => name !== 'sw.js' && !name.startsWith('.')).map(name => [name, readFileSync(join(src, name))]),
+    ...walk(src).filter(path => path !== 'sw.js').map(path => [path, readFileSync(join(src, path))]),
     ['manifest.webmanifest', readFileSync(join(ROOT, 'assets/manifest.webmanifest'))],
     ...readdirSync(icons).filter(name => name.endsWith('.png')).map(name => [`icons/${name}`, readFileSync(join(icons, name))]),
   ];
@@ -25,8 +32,10 @@ export async function buildSite({ outDir }) {
   const files = entries.map(([path]) => path).sort();
 
   rmSync(outDir, { recursive: true, force: true });
-  mkdirSync(join(outDir, 'icons'), { recursive: true });
-  for (const [path, data] of entries) writeFileSync(join(outDir, path), data);
+  for (const [path, data] of entries) {
+    mkdirSync(dirname(join(outDir, path)), { recursive: true });
+    writeFileSync(join(outDir, path), data);
+  }
   const sw = template.replace("'__VERSION__'", JSON.stringify(version)).replace('__PRECACHE__', JSON.stringify(['./', ...files]));
   writeFileSync(join(outDir, 'sw.js'), sw);
   return { version, files: [...files, 'sw.js'] };
