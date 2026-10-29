@@ -13,7 +13,8 @@ const SCOPE = self.registration.scope;
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    await cache.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })));
+    // ?v= gør hver URL ny for GitHubs CDN, så en forældet kopi aldrig havner i den nye cache; opslag bruger ignoreSearch.
+    await cache.addAll(PRECACHE.map(u => new Request(`${u}?v=${VERSION}`, { cache: 'reload' })));
     await self.skipWaiting();
   })());
 });

@@ -57,3 +57,7 @@ test('the app checks for updates when it comes back to the foreground', () => {
   assert.match(app, /\.update\(\)/);
   assert.match(app, /controllerchange/);
 });
+
+test('precache requests carry the version so a stale CDN copy is never cached', () => {
+  assert.match(read('sw.js'), /v=\$\{VERSION\}/);
+});

@@ -69,7 +69,7 @@ table.addEventListener('pointerdown', e => {
   e.preventDefault();
   try { table.setPointerCapture(e.pointerId); } catch {}
   if (e.isPrimary) tracker.reset(); // første finger: ingen andre er nede, så tabte pointere ryddes væk
-  tracker.down(e.pointerId);
+  tracker.down(e.pointerId, e.timeStamp);
 });
 table.addEventListener('pointerup', e => {
   e.preventDefault();
