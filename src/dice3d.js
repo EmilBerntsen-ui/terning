@@ -9,11 +9,11 @@ import {
 } from './vendor/three.module.min.js';
 import { RoundedBoxGeometry } from './vendor/RoundedBoxGeometry.js';
 import { RoomEnvironment } from './vendor/RoomEnvironment.js';
-import { MAX_DICE, ROLL_MS, blur, frame, orientation, pose, turn } from './dice.js';
+import { MAX_DICE, ROLL_MS, blur, frame, orientation, pose, spot, turn } from './dice.js';
 
 const DEG = Math.PI / 180;
 const DISTANCE = 6; // kameraets afstand i terningstørrelser, som det gamle `perspective: 6 × størrelsen`
-const RISE = 0.22, GROW = 1.08; // hoppets top: 22 % op ad skærmen og 8 % større (løftet mod kameraet)
+const RISE = 0.22, GROW = 1.08; // hoppets top: 22 % op ad skærmen og, for en enkelt terning, 8 % større (løftet mod kameraet)
 const SLOTS = MAX_DICE + 1; // dybdelag: skyggerne nederst, så terning 1, 2, …
 
 // Terningen i enhedsmål (sidelængde 1). Afrundede kanter; prikkerne er dybe skåle med en afrundet kant.
@@ -228,21 +228,25 @@ function start(canvas, table, diceEl) {
   }
 
   // Terningerne i stillingen ved tiden t; `ghost` tegner dem som svage spøgelsesbilleder med den givne uigennemsigtighed.
+  // Er der flere, spredes de og løftes ikke mod kameraet, så de ikke rører hinanden (spot).
   function place(t, ghost = 0) {
+    const shown = dice.filter(d => d.shown), many = shown.length > 1;
+    const center = { x: shown.reduce((a, d) => a + d.x, 0) / shown.length, y: shown.reduce((a, d) => a + d.y, 0) / shown.length };
     for (const d of dice) {
       d.die.visible = d.shown;
       d.shadow.visible = d.shown && !ghost;
       if (!d.shown) continue;
       const { x, y, lift } = pose(d.from, d.to, t);
-      const side = d.size / (1 + 0.5 / DISTANCE); // så forsiden fylder pladsholderen
+      const at = spot(d, center, t, many);
+      const side = (d.size / (1 + 0.5 / DISTANCE)) * at.scale; // i ro fylder forsiden pladsholderen
       d.die.rotation.set(x * DEG, y * DEG, 0);
-      d.die.position.set(d.x, d.y + RISE * d.size * lift, d.D * (1 - 1 / GROW) * lift);
+      d.die.position.set(at.x, at.y + RISE * d.size * lift, many ? 0 : d.D * (1 - 1 / GROW) * lift);
       d.die.scale.setScalar(side);
       d.body.material = ghost ? d.m.bodyGhost : d.m.body;
       d.pips.material = ghost ? d.m.pipsGhost : d.m.pips;
       d.m.bodyGhost.opacity = d.m.pipsGhost.opacity = ghost || 1;
       // Skyggen bliver på bordet: større, blødere og svagere, mens terningen er i luften.
-      d.shadow.position.set(d.x, d.y - 0.08 * side, -0.5 * side);
+      d.shadow.position.set(at.x, at.y - 0.08 * side, -0.5 * side);
       d.shadow.scale.setScalar(side * 2.1 * (1 + 0.25 * lift));
       d.shadow.material.opacity = 0.6 * (1 - 0.6 * lift);
     }

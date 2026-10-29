@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Object3D, Vector3 } from '../src/vendor/three.module.min.js';
 import {
   randomInt, sixesFor, planRoll, orientation, nextAngle, FACES, rotate, facing, frame, turn, settle, hop, pose, shutter, blur,
-  GHOSTS, GHOST_STEP,
+  GHOSTS, GHOST_STEP, scatter, spot,
 } from '../src/dice.js';
 
 const bytes = list => { let i = 0; return () => list[i++]; };
@@ -113,6 +113,17 @@ test('the roll starts and ends at rest: eased spin, hop on the ground at both en
   const from = { x: 90, y: -360 }, to = turn(from, 4, { x: -3, y: 2 });
   assert.deepEqual(pose(from, to, 0), { ...from, lift: 0 });
   assert.deepEqual(pose(from, to, 1), { ...to, lift: 0 });
+});
+
+test('several dice spread out while tumbling and land in their own cells; a single die stays put', () => {
+  assert.equal(scatter(0), 0);
+  assert.equal(scatter(0.1), 1);
+  for (let t = 0.88; t <= 1; t += 0.02) assert.equal(scatter(t), 0, `${t}`);
+  const cell = { x: -119, y: 59.5 }, center = { x: 0, y: 0 };
+  assert.deepEqual(spot(cell, center, 1, true), { ...cell, scale: 1 });
+  const mid = spot(cell, center, 0.3, true);
+  assert.ok(mid.x < cell.x && mid.y > cell.y && mid.scale < 1, 'away from the middle and smaller');
+  for (const t of [0, 0.3, 0.6, 1]) assert.deepEqual(spot(cell, center, t, false), { ...cell, scale: 1 });
 });
 
 test('motion blur follows only the motion, never jumps in visible steps, and is gone in the last quarter', () => {

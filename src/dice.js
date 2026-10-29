@@ -79,8 +79,8 @@ export function turn(from, face, spin) {
 }
 
 // Bevægelsen i et slag, som funktion af t = 0..1 (andel af ROLL_MS). Den er den samme for alle slag; kun spins og slutsiden indgår.
-// Drejningen: hurtig start og blød opbremsning til stilstand, som en terning der løber ud.
-export const settle = t => 1 - (1 - t) ** 3;
+// Drejningen: et kort tilløb (de første 10 %), så hurtigt og en blød opbremsning til stilstand, som en terning der løber ud.
+export const settle = t => (1 - (1 - t) ** 3) * (1 - (1 - Math.min(1, t / 0.1)) ** 2);
 
 // Hoppets højde (0..1): op til 28 %, ned ved 58 %, et lille genhop ved 72 %, stille fra 86 %. Parabler, som ved tyngde.
 export const BOUNCE = 0.23;
@@ -94,6 +94,19 @@ export function hop(t) {
 export function pose(from, to, t) {
   const k = settle(t);
   return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, lift: hop(t) };
+}
+
+// Flere terninger: mens de tumler, spredes de lidt ud fra midten og bliver lidt mindre, så de ikke rører hinanden,
+// og de lander på deres plads. `scatter` er hvor meget (0..1): fuldt fra lige efter kastet, væk igen inden de står stille.
+export const SPREAD_X = 0.15, SPREAD_Y = 0.35, SHRINK = 0.2;
+export function scatter(t) {
+  const step = (a, b) => { const k = Math.min(1, Math.max(0, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+  return step(0, 0.06) * (1 - step(0.5, 0.88));
+}
+// Terningens plads og størrelse (1 = pladsholderen) ved tiden t; `cell` og `center` (alle terningers midte) i samme akser.
+export function spot(cell, center, t, many) {
+  const s = many ? scatter(t) : 0;
+  return { x: center.x + (cell.x - center.x) * (1 + SPREAD_X * s), y: center.y + (cell.y - center.y) * (1 + SPREAD_Y * s), scale: 1 - SHRINK * s };
 }
 
 // Bevægelsessløret: hvor langt tilbage (andel af ROLL_MS) de svage ekstra billeder af terningen højst rækker. Fuldt i starten,
