@@ -25,3 +25,8 @@ test('cancelling the only finger resets the tracker', () => {
 });
 
 test('unknown id is ignored', () => assert.equal(createTapTracker().up(99), null));
+
+test('reset clears a pointer whose up was never delivered', () => {
+  const t = createTapTracker(); t.down(1); // up for 1 is lost
+  t.reset(); t.down(2); assert.deepEqual(t.up(2), { fingers: 1 });
+});

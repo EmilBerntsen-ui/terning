@@ -5,6 +5,11 @@ export function createTapTracker() {
   let most = 0, aborted = false;
   const reset = () => { most = 0; aborted = false; };
   return {
+    // Glemmer alt, også pointere hvis op-hændelse aldrig kom (fx skærmlås midt i et tryk).
+    reset() {
+      down.clear();
+      reset();
+    },
     down(id) {
       down.add(id);
       most = Math.max(most, down.size);

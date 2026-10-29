@@ -51,3 +51,9 @@ test('nothing visible gives the trick away', () => {
   for (const f of ['index.html', 'manifest.webmanifest'])
     assert.doesNotMatch(read(f), /\b(fake|cheat|rigged|forced|snyd|falsk)\b/i, f);
 });
+
+test('the app checks for updates when it comes back to the foreground', () => {
+  const app = read('app.js');
+  assert.match(app, /\.update\(\)/);
+  assert.match(app, /controllerchange/);
+});

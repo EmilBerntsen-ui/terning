@@ -68,6 +68,7 @@ function setCount(n) {
 table.addEventListener('pointerdown', e => {
   e.preventDefault();
   try { table.setPointerCapture(e.pointerId); } catch {}
+  if (e.isPrimary) tracker.reset(); // første finger: ingen andre er nede, så tabte pointere ryddes væk
   tracker.down(e.pointerId);
 });
 table.addEventListener('pointerup', e => {
@@ -87,4 +88,22 @@ $('more').addEventListener('click', () => setCount(count + 1));
 
 layout();
 
-if (isSecureContext && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// Opdatering: iOS genoptager appen uden at genindlæse, så der tjekkes, når den kommer frem igen.
+// Når en ny version har taget over, genindlæses siden mellem to slag (kun antallet er tilstand, og det er gemt).
+if (isSecureContext && 'serviceWorker' in navigator) {
+  const sw = navigator.serviceWorker;
+  const hadController = !!sw.controller;
+  sw.register('sw.js').then(reg => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+  sw.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    const reload = () => (rolling ? setTimeout(reload, FRAME_MS) : location.reload());
+    reload();
+  });
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') tracker.reset();
+});
